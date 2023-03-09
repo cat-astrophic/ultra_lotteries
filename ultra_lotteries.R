@@ -2,11 +2,14 @@
 
 # Loading libraries
 
+library(modelsummary)
+library(kableExtra)
 library(stargazer)
 library(sandwich)
 library(ggplot2)
 library(lmtest)
 library(dplyr)
+library(AER)
 
 # Directory info
 
@@ -580,4 +583,222 @@ write.csv(stargazer(se.alt.l1, se.alt.l2, se.alt.l3, se.alt.l4, se.alt.r1, se.al
 write.csv(stargazer(se.travel.l1, se.travel.l2, se.travel.l3, se.travel.l4, se.travel.r1, se.travel.r2, se.travel.r3, se.travel.r4, omit = c('Runner_ID', 'Year')), paste(direc, 'Results/mean_travel_distance.txt', sep = ''))
 write.csv(stargazer(se.f.l1, se.f.l2, se.f.l3, se.f.l4, se.f.r1, se.f.r2, se.f.r3, se.f.r4, omit = c('Runner_ID', 'Year')), paste(direc, 'Results/percent_female_all.txt', sep = ''))
 write.csv(stargazer(se.ff.l1, se.ff.l2, se.ff.l3, se.ff.l4, se.ff.r1, se.ff.r2, se.ff.r3, se.ff.r4, omit = c('Runner_ID', 'Year')), paste(direc, 'Results/percent_female_female_only.txt', sep = ''))
+
+# Making a cute little summary statistics figure
+
+races$MERGE_ID <- paste(races$Runner_ID, races$Year, races$Period, races$Window, races$Treatment_Type, sep = '+')
+place$MERGE_ID <- paste(place$Runner_ID, place$Year, place$Period, place$Window, place$Treatment_Type, sep = '+')
+wins$MERGE_ID <- paste(wins$Runner_ID, wins$Year, wins$Period, wins$Window, wins$Treatment_Type, sep = '+')
+winpct$MERGE_ID <- paste(winpct$Runner_ID, winpct$Year, winpct$Period, winpct$Window, winpct$Treatment_Type, sep = '+')
+size$MERGE_ID <- paste(size$Runner_ID, size$Year, size$Period, size$Window, size$Treatment_Type, sep = '+')
+alt$MERGE_ID <- paste(alt$Runner_ID, alt$Year, alt$Period, alt$Window, alt$Treatment_Type, sep = '+')
+travel$MERGE_ID <- paste(travel$Runner_ID, travel$Year, travel$Period, travel$Window, travel$Treatment_Type, sep = '+')
+f$MERGE_ID <- paste(f$Runner_ID, f$Year, f$Period, f$Window, f$Treatment_Type, sep = '+')
+
+df <- rbind(races[,which(names(races) != 'Races')], place[,which(names(place) != 'Place')], wins[,which(names(wins) != 'Wins')],
+            winpct[,which(names(winpct) != 'Win_Percentage')], size[,which(names(size) != 'Race_Size')], alt[,which(names(alt) != 'Race_Altitude')],
+            travel[,which(names(travel) != 'Travel_Distance')], f[,which(names(f) != 'Percent_Female')])
+
+df <- df[!duplicated(df),]
+
+df1 <- c()
+df2 <- c()
+df3 <- c()
+df4 <- c()
+df5 <- c()
+df6 <- c()
+df7 <- c()
+df8 <- c()
+
+for (i in 1:dim(df)[1]) {
+  
+  print(i)
+  
+  x1 <- races[which(races$MERGE_ID == df$MERGE_ID[i]),]
+  x2 <- place[which(place$MERGE_ID == df$MERGE_ID[i]),]
+  x3 <- wins[which(wins$MERGE_ID == df$MERGE_ID[i]),]
+  x4 <- winpct[which(winpct$MERGE_ID == df$MERGE_ID[i]),]
+  x5 <- size[which(size$MERGE_ID == df$MERGE_ID[i]),]
+  x6 <- travel[which(travel$MERGE_ID == df$MERGE_ID[i]),]
+  x7 <- alt[which(alt$MERGE_ID == df$MERGE_ID[i]),]
+  x8 <- f[which(f$MERGE_ID == df$MERGE_ID[i]),]
+  
+  if (dim(x1)[1] > 0) {df1 <- c(df1, x1$Races[1])} else {df1 <- c(df1, NA)}
+  if (dim(x2)[1] > 0) {df2 <- c(df2, x2$Place[1])} else {df2 <- c(df2, NA)}
+  if (dim(x3)[1] > 0) {df3 <- c(df3, x3$Wins[1])} else {df3 <- c(df3, NA)}
+  if (dim(x4)[1] > 0) {df4 <- c(df4, x4$Win_Percentage[1])} else {df4 <- c(df4, NA)}
+  if (dim(x5)[1] > 0) {df5 <- c(df5, x5$Race_Size[1])} else {df5 <- c(df5, NA)}
+  if (dim(x6)[1] > 0) {df6 <- c(df6, x6$Travel_Distance[1])} else {df6 <- c(df6, NA)}
+  if (dim(x7)[1] > 0) {df7 <- c(df7, x7$Race_Altitude[1])} else {df7 <- c(df7, NA)}
+  if (dim(x8)[1] > 0) {df8 <- c(df8, x8$Percent_Female[1])} else {df8 <- c(df8, NA)}
+  
+}
+
+df$Races <- df1
+df$Place <- df2
+df$Wins <- df3
+df$Win_Percentage <- df4
+df$Race_Size <- df5
+df$Travel_Distance <- df6
+df$Race_Altitude <- df7
+df$Percent_Female <- df8
+
+df.pre <- df[which(df$Post == 0),]
+df.post <- df[which(df$Post == 1),]
+
+keepers.outcomes <- c('Treated', 'Races', 'Place', 'Wins', 'Win_Percentage', 'Race_Size', 'Travel_Distance', 'Race_Altitude', 'Percent_Female')
+new_names <- c('Treated', 'Number of Races', 'Relative Place (Mean)', 'Wins', 'Win Percentage', 'Race Size (Mean)', 'Race Altitude (Mean; Feet)', 'Travel Distance (Mean; Miles)', 'Percent Female Participants (Mean)')
+df.outcomes <- df[,names(df) %in% keepers.outcomes]
+df.pre <- df.pre[,names(df.pre) %in% keepers.outcomes]
+df.post <- df.post[,names(df.post) %in% keepers.outcomes]
+names(df.outcomes) <- new_names
+names(df.pre) <- new_names
+names(df.post) <- new_names
+datasummary_skim(df.outcomes, fmt = '%.3f')
+
+# Also create summary stats table comparing treatment v control! (mu/sigma \forall vars)
+
+df.treated <- df.outcomes[which(df.outcomes$Treated == 1),]
+df.control <- df.outcomes[which(df.outcomes$Treated == 0),]
+
+means.treated <- c()
+means.control <- c()
+sigma.treated <- c()
+sigma.control <- c()
+
+for (i in 2:dim(df.outcomes)[2]) {
+  
+  tmp.treated <- df.treated[,which(names(df.treated) == names(df.treated)[i])]
+  tmp.control <- df.control[,which(names(df.control) == names(df.control)[i])]
+  
+  means.treated <- c(means.treated, mean(tmp.treated, na.rm = TRUE))
+  means.control <- c(means.control, mean(tmp.control, na.rm = TRUE))
+  sigma.treated <- c(sigma.treated, sd(tmp.treated, na.rm = TRUE))
+  sigma.control <- c(sigma.control, sd(tmp.control, na.rm = TRUE))
+  
+}
+
+tex_table <- c()
+
+for (i in 1:length(means.treated)) {
+  
+  line1 <- paste(names(df.treated)[i+1], ' & ', round(means.treated[i], 3), ' & ', round(means.control[i], 3), '\\\\', sep = '')
+  line2 <- paste(' & (', round(sigma.treated[i], 3), ') & (', round(sigma.control[i], 3), ')\\\\', sep = '')
+  
+  tex_table <- c(tex_table, line1)
+  tex_table <- c(tex_table, line2)
+  
+}
+
+write.csv(tex_table, paste(direc, 'figures/comparison_table_all_time.txt', sep = ''), row.names = FALSE)
+
+pre.treated <- df.pre[which(df.pre$Treated == 1),]
+pre.control <- df.pre[which(df.pre$Treated == 0),]
+
+pre.means.treated <- c()
+pre.means.control <- c()
+pre.sigma.treated <- c()
+pre.sigma.control <- c()
+
+for (i in 2:dim(df.outcomes)[2]) {
+  
+  tmp.treated <- pre.treated[,which(names(pre.treated) == names(pre.treated)[i])]
+  tmp.control <- pre.control[,which(names(pre.control) == names(pre.control)[i])]
+  
+  pre.means.treated <- c(pre.means.treated, mean(tmp.treated, na.rm = TRUE))
+  pre.means.control <- c(pre.means.control, mean(tmp.control, na.rm = TRUE))
+  pre.sigma.treated <- c(pre.sigma.treated, sd(tmp.treated, na.rm = TRUE))
+  pre.sigma.control <- c(pre.sigma.control, sd(tmp.control, na.rm = TRUE))
+  
+}
+
+tex_table <- c()
+
+for (i in 1:length(means.treated)) {
+  
+  line1 <- paste(names(pre.treated)[i+1], ' & ', round(pre.means.treated[i], 3), ' & ', round(pre.means.control[i], 3), '\\\\', sep = '')
+  line2 <- paste(' & (', round(pre.sigma.treated[i], 3), ') & (', round(pre.sigma.control[i], 3), ')\\\\', sep = '')
+  
+  tex_table <- c(tex_table, line1)
+  tex_table <- c(tex_table, line2)
+  
+}
+
+write.csv(tex_table, paste(direc, 'figures/comparison_table.txt', sep = ''), row.names = FALSE)
+
+# Create two-period summary statistics plots
+
+post.treated <- df.post[which(df.post$Treated == 1),]
+post.control <- df.post[which(df.post$Treated == 0),]
+
+post.means.treated <- c()
+post.means.control <- c()
+post.sigma.treated <- c()
+post.sigma.control <- c()
+
+for (i in 2:dim(df.outcomes)[2]) {
+  
+  tmp.treated <- post.treated[,which(names(post.treated) == names(post.treated)[i])]
+  tmp.control <- post.control[,which(names(post.control) == names(post.control)[i])]
+  
+  post.means.treated <- c(post.means.treated, mean(tmp.treated, na.rm = TRUE))
+  post.means.control <- c(post.means.control, mean(tmp.control, na.rm = TRUE))
+  post.sigma.treated <- c(post.sigma.treated, sd(tmp.treated, na.rm = TRUE))
+  post.sigma.control <- c(post.sigma.control, sd(tmp.control, na.rm = TRUE))
+  
+}
+
+c1 <- c(pre.means.control[1],post.means.control[1])
+c2 <- c(pre.means.control[2],post.means.control[2])
+c3 <- c(pre.means.control[3],post.means.control[3])
+c4 <- c(pre.means.control[4],post.means.control[4])
+c5 <- c(pre.means.control[5],post.means.control[5])
+c6 <- c(pre.means.control[6],post.means.control[6])
+c7 <- c(pre.means.control[7],post.means.control[7])
+c8 <- c(pre.means.control[8],post.means.control[8])
+
+t1 <- c(pre.means.treated[1],post.means.treated[1])
+t2 <- c(pre.means.treated[2],post.means.treated[2])
+t3 <- c(pre.means.treated[3],post.means.treated[3])
+t4 <- c(pre.means.treated[4],post.means.treated[4])
+t5 <- c(pre.means.treated[5],post.means.treated[5])
+t6 <- c(pre.means.treated[6],post.means.treated[6])
+t7 <- c(pre.means.treated[7],post.means.treated[7])
+t8 <- c(pre.means.treated[8],post.means.treated[8])
+
+df.plot1 <- as.data.frame(cbind(c1,t1))
+df.plot2 <- as.data.frame(cbind(c2,t2))
+df.plot3 <- as.data.frame(cbind(c3,t3))
+df.plot4 <- as.data.frame(cbind(c4,t4))
+df.plot5 <- as.data.frame(cbind(c5,t5))
+df.plot6 <- as.data.frame(cbind(c6,t6))
+df.plot7 <- as.data.frame(cbind(c7,t7))
+df.plot8 <- as.data.frame(cbind(c8,t8))
+df.plot <- as.data.frame(cbind(c1,c2,c3,c4,c5,c6,c7,c8,t1,t2,t3,t4,t5,t6,t7,t8))
+
+par(mfrow = c(4,2), mai = c(0.3, 0.7, 0.3, 0.3))
+matplot(df.plot1, type = 'b', pch = 1, col = 1:2, ylab = 'Number of Races', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot2, type = 'b', pch = 1, col = 1:2, ylab = 'Relative Place', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot3, type = 'b', pch = 1, col = 1:2, ylab = 'Wins', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot4, type = 'b', pch = 1, col = 1:2, ylab = 'Win Percentage', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot5, type = 'b', pch = 1, col = 1:2, ylab = 'Race Size', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot6, type = 'b', pch = 1, col = 1:2, ylab = 'Race Altitude', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot7, type = 'b', pch = 1, col = 1:2, ylab = 'Travel Distance', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
+matplot(df.plot8, type = 'b', pch = 1, col = 1:2, ylab = 'Percent Female', xaxt = 'n')
+xtick <- seq(1, 2, by = 1)
+axis(side = 1, at = xtick, labels = c('Pre', 'Post'))
 
